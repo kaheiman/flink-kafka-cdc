@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+      - "9094:9094"
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:9094
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9094
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_KRAFT_CLUSTER_ID=kraft-cluster-1
+    volumes:
+      - kafka-data:/bitnami/kafka
+
+  cp-schema-registry:
+    image: confluentinc/cp-schema-registry:7.2.1
+    ports:
+      - 8085:8085
+    depends_on:
+      - kafka
+    environment:
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      SCHEMA_REGISTRY_KAFKASTORE_SECURITY_PROTOCOL: PLAINTEXT
+      SCHEMA_REGISTRY_HOST_NAME: cp-schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://cp-schema-registry:8085
+
+      SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "http"
+      SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=kraft-cluster
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://cp-schema-registry:8085
+    depends_on:
+      - kafka
+      - cp-schema-registry
+
+  kcat:
+    image: confluentinc/cp-kcat:7.5.0
+    container_name: kcat
+    entrypoint: ["tail", "-f", "/dev/null"]
+    depends_on:
+      - kafka
+      - cp-schema-registry
+
+  rest-proxy:
+    image: confluentinc/cp-kafka-rest:7.2.1
+    ports:
+      - 8082:8082
+    depends_on:
+      - kafka
+      - cp-schema-registry
+    environment:
+      KAFKA_REST_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:9092
+      KAFKA_REST_LISTENERS: http://0.0.0.0:8082
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://cp-schema-registry:8085      
+
+  ai-db:
+    image: mysql:8.0.39
+    platform: linux/amd64
+    hostname: ai-db
+    container_name: ai-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 'Mak3An7thing'
+      MYSQL_USER: 'assignments'
+      MYSQL_PASSWORD: 'assignments'
+      MYSQL_DATABASE: 'assignmentassignintent'
+    volumes:
+      - "/Users/manmar/Personal/assignIntent:/var/lib/mysql"
+      - "./ai-mysql/custom-config.cnf:/etc/mysql/conf.d/custom-config.cnf"
+      - "./ai-mysql/grant_privileges.sql:/docker-entrypoint-initdb.d/grant_privileges.sql"
+      - "./ai-mysql/ai-init.sql:/docker-entrypoint-initdb.d/db_init.sql"
+    ports:
+      - "3307:3306"
+
+  jobmanager:
+    image: flink:1.20.0-scala_2.12
+    ports:
+      - 8081:8081
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        state.backend: rocksdb
+        state.backend.rocksdb.localdir: file:///flink/rocksdb-data
+        state.checkpoints.dir: file:///flink/checkpoints
+    volumes:
+      # Mount local directory into the container for checkpoints
+      - "/Users/manmar/Personal/flink-kafka-cdc/raw/rocksdb-data/checkpoints:/flink/checkpoints"
+      # Mount local directory into the container for savepoints
+      - "/Users/manmar/Personal/flink-kafka-cdc/raw/rocksdb-data/savepoints:/flink/savepoints"        
+      - "/Users/manmar/Personal/flink-kafka-cdc/raw/rocksdb-data/state-data:/flink/rocksdb-data"
+
+  taskmanager:
+    image: flink:1.20.0-scala_2.12
+    depends_on:
+      - jobmanager
+    deploy:
+      resources:
+        limits:
+          memory: 12G
+        reservations:
+          memory: 8G      
+    command: taskmanager
+    scale: 1
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        taskmanager.memory.process.size: 10g
+        taskmanager.memory.managed.size: 4024m
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///flink/checkpoints
+        state.backend.rocksdb.localdir: file:///flink/rocksdb-data
+    volumes:
+      - "/Users/manmar/Personal/flink-kafka-cdc/raw/rocksdb-data/checkpoints:/flink/checkpoints"
+      - "/Users/manmar/Personal/flink-kafka-cdc/raw/rocksdb-data/state-data:/flink/rocksdb-data"
+
+volumes:
+  kafka-data:

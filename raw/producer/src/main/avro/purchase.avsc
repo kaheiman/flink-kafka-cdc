@@ -1,0 +1,20 @@
+{
+  "type": "record",
+  "name": "Purchase",
+  "namespace": "io.confluent.developer",
+  "fields": [
+    {
+      "name": "user",
+      "type": "string"
+    },
+    {
+      "name": "item",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    }
+  ]
+}

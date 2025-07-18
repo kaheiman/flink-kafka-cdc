@@ -1,0 +1,3 @@
+GRANT ALL PRIVILEGES ON *.* TO 'assignments' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON assignments.* TO 'assignments'@'%';
+FLUSH PRIVILEGES;

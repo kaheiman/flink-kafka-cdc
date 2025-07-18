@@ -1,0 +1,16 @@
+{
+  "bootstrap_uri": "kafka:9092",
+  "client_id": "karapace",
+  "host": "0.0.0.0",
+  "port": 8081,
+  "compatibility": "FULL",
+  "master_eligibility": true,
+  "replication_factor": 1,
+  "rest_authorization": false,
+  "karapace_rest": true,
+  "karapace_registry": true,
+  "registry_authfile": null,
+  "topic_name": "_schemas",
+  "protobuf_runtime_directory": "runtime",
+  "session_timeout_ms": 10000
+}

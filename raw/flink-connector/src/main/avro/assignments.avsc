@@ -1,0 +1,58 @@
+{
+  "type": "record",
+  "name": "AssignmentCdcEvent",
+  "namespace": "marcus.avro",
+  "fields": [
+    {
+      "name": "before",
+      "type": [
+        "null",
+        {
+          "type": "record",
+          "name": "Assignment",
+          "fields": [
+            { "name": "id", "type": "string" },
+            { "name": "poolKey", "type": "string" },
+            { "name": "poolType", "type": "string" },
+            { "name": "subjectId", "type": "string" },
+            { "name": "subjectType", "type": "string" },
+            { "name": "subscriberContextId", "type": "string" },
+            { "name": "features", "type": ["null", "string"], "default": null },
+            { "name": "subscriptionIdentifier", "type": ["null", "string"], "default": null },
+            { "name": "assignmentType", "type": ["null", "string"], "default": null },
+            { "name": "enabled", "type": "boolean", "default": true },
+            {
+              "name": "createdAt",
+              "type": { "type": "long", "logicalType": "timestamp-millis" }
+            },
+            {
+              "name": "updatedAt",
+              "type": { "type": "long", "logicalType": "timestamp-millis" }
+            },
+            { "name": "createdBy", "type": ["null", "string"], "default": null },
+            { "name": "updatedBy", "type": ["null", "string"], "default": null },
+            { "name": "utsMigrationId", "type": ["null", "string"], "default": null }
+          ]
+        }
+      ],
+      "default": null
+    },
+    {
+      "name": "after",
+      "type": [
+        "null",
+        "Assignment"  // reference to record above
+      ],
+      "default": null
+    },
+    {
+      "name": "op",
+      "type": "string"
+    },
+    {
+      "name": "ts_ms",
+      "type": ["null", "long"],
+      "default": null
+    }
+  ]
+}

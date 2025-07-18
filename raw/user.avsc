@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "User",
+  "namespace": "com.example",
+  "fields": [
+    { "name": "id", "type": "string" },
+    { "name": "name", "type": "string" },
+    { "name": "email", "type": ["null", "string"], "default": null },
+    { "name": "is_active", "type": "boolean", "default": true },
+    { "name": "signup_timestamp", "type": ["null", "long"], "logicalType": "timestamp-millis", "default": null }
+  ]
+}
